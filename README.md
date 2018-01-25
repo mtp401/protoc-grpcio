@@ -1,6 +1,6 @@
 # grpcio-compiler-protoc
 
-A programmtic API to the
+A programmatic API to the
 [grpc-rs compiler](https://github.com/pingcap/grpc-rs).
 
 ## Example
