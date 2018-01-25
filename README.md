@@ -1,5 +1,7 @@
 # grpcio-compiler-protoc
+[![crates.io](https://img.shields.io/crates/v/protoc-grpcio.svg)](https://crates.io/crates/protoc-grpcio) 
 [![Build Status](https://travis-ci.org/mtp401/protoc-grpcio.svg?branch=master)](https://travis-ci.org/mtp401/protoc-grpcio)
+[![License](https://img.shields.io/crates/l/protoc-grpcio.svg)](https://github.com/mtp401/protoc-grpcio/blob/master/LICENSE)
 
 A programmatic API to the
 [grpc-rs compiler](https://github.com/pingcap/grpc-rs).
