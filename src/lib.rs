@@ -192,8 +192,8 @@ mod tests {
         let proto_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/assets/protos");
 
         compile_grpc_protos(
-            vec![proto_dir.join("helloworld.proto")].as_slice(),
-            vec![proto_dir].as_slice(),
+            &[proto_dir.join("helloworld.proto")],
+            &[proto_dir],
             &temp_dir
         ).unwrap();
 
