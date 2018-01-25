@@ -28,7 +28,7 @@
 // limitations under the License.
 #![deny(warnings)]
 #![warn(missing_docs)]
-//! An API for programattically invoking the grpcio gRPC compiler in the same vein as the
+//! An API for programmatically invoking the grpcio gRPC compiler in the same vein as the
 //! [rust-protoc-grpc](https://crates.io/crates/protoc-rust-grpc) crate from Stepan Koltsov.
 
 extern crate grpcio_compiler;
