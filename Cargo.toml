@@ -1,0 +1,19 @@
+[package]
+name = "grpcio-compiler-protoc"
+version = "0.1.0"
+authors = ["Matt Pelland <matt@pelland.io>"]
+license = "Apache-2.0"
+keywords = ["compiler", "grpc", "protobuf"]
+repository = "https://github.com/mtp401/grpcio-compiler-protoc"
+documentation = "https://docs.rs/grpcio-compiler-protoc"
+description = "API for programatically invoking the grpcio gRPC compiler"
+
+[badges]
+maintenance = { status = "passively-maintained" }
+
+[dependencies]
+grpcio-compiler = "0.2"
+failure = "0.1"
+mktemp = "0.3"
+protobuf = "1.4"
+protoc = "1.4"
