@@ -1,4 +1,5 @@
 # grpcio-compiler-protoc
+[![Build Status](https://travis-ci.org/mtp401/protoc-grpcio.svg?branch=master)](https://travis-ci.org/mtp401/protoc-grpcio)
 
 A programmatic API to the
 [grpc-rs compiler](https://github.com/pingcap/grpc-rs).
