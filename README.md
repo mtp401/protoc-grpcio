@@ -6,6 +6,11 @@
 A programmatic API to the
 [grpc-rs compiler](https://github.com/pingcap/grpc-rs).
 
+## Requirements
+
+- You must have Google's Protocol Buffer compiler (`protoc`) installed and in
+  `PATH`.
+
 ## Example `build.rs`
 
 ```rust
