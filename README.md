@@ -6,17 +6,16 @@
 A programmatic API to the
 [grpc-rs compiler](https://github.com/pingcap/grpc-rs).
 
-## Example
+## Example `build.rs`
 
 ```rust
-extern crate grpcio_compiler_protoc;
+extern crate protoc_grpcio;
 
-grpcio_compiler_protoc::compile_grpc_protos(
+protoc_grpcio::compile_grpc_protos(
     &["example/protobuf.proto"],
     &["example"],
     "output"
 ).expect("failed to compile gRPC definitions");
-
 ```
 
 ## Credits
