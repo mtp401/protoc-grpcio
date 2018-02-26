@@ -23,6 +23,17 @@ protoc_grpcio::compile_grpc_protos(
 ).expect("failed to compile gRPC definitions");
 ```
 
+## Example `Cargo.toml`
+
+```yaml
+[package]
+# ...
+build = "build.rs"
+
+[build-dependencies]
+protoc-grpcio = "0.1.0"
+```
+
 ## Credits
 
 Credit to both the TiKV project developers for
