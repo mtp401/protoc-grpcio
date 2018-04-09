@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package foo.bar;
+
+message Foo {
+  int64 value = 1;
+}
+
+message Bar {
+  double value = 1;
+}
+
+service Baz {
+  rpc Qux(Foo) returns (Bar) {}
+}

@@ -10,3 +10,4 @@ before_install:
     - ./install_dependencies.sh
 script:
     - PATH=/home/travis/bin:$PATH cargo test
+    - PATH=/home/travis/bin:$PATH cargo compile --manifest-path example/Cargo.toml
