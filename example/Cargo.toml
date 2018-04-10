@@ -2,6 +2,7 @@
 name = "example"
 version = "0.0.1"
 authors = ["John Doe <john.doe@example.com>"]
+publish = false
 
 [lib]
 name = "protos"
