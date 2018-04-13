@@ -7,7 +7,7 @@ keywords = ["compiler", "grpc", "protobuf", "grpc-rs"]
 repository = "https://github.com/mtp401/protoc-grpcio"
 documentation = "https://docs.rs/protoc-grpcio"
 description = """
-API for programatically invoking the grpcio (grpc-rs) gRPC compiler"
+API for programatically invoking the grpcio (grpc-rs) gRPC compiler
 """
 
 [dependencies]
