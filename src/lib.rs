@@ -42,7 +42,6 @@ extern crate protobuf;
 extern crate protoc;
 
 use std::convert::AsRef;
-use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::Iterator;
@@ -61,12 +60,13 @@ pub type CompileError = ::failure::Error;
 /// Custom result type used throughout this crate.
 pub type CompileResult<T> = Result<T, CompileError>;
 
-fn stringify_paths<P>(paths: &[P]) -> CompileResult<Vec<String>>
+fn stringify_paths<Paths>(paths: Paths) -> CompileResult<Vec<String>>
 where
-    P: AsRef<Path>
+    Paths: IntoIterator,
+    Paths::Item: AsRef<Path>
 {
     paths
-        .iter()
+        .into_iter()
         .map(|input| match input.as_ref().to_str() {
             Some(s) => Ok(s.to_owned()),
             None => Err(format_err!(
@@ -99,19 +99,21 @@ where
 ///
 /// # Arguments
 ///
-/// * `inputs` - A list of protobuf definitions to compile. Corresponds directly to what you'd
-///     typically feed into `protoc`.
+/// * `inputs` - A list of protobuf definitions to compile. Should be paths relative to the
+///     `includes` directories.
 /// * `includes` - A list of of include directories to pass to `protoc`. Note that the directory
 ///     each member of `inputs` is in must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
-pub fn compile_grpc_protos<Input, Include, Output>(
-    inputs: &[Input],
-    includes: &[Include],
+pub fn compile_grpc_protos<Inputs, Includes, Output>(
+    inputs: Inputs,
+    includes: Includes,
     output: Output
 ) -> CompileResult<()>
 where
-    Input: AsRef<Path>,
-    Include: AsRef<Path>,
+    Inputs: IntoIterator,
+    Inputs::Item: AsRef<Path>,
+    Includes: IntoIterator,
+    Includes::Item: AsRef<Path>,
     Output: AsRef<Path>
 {
     let protoc = Protoc::from_env_path();
@@ -155,27 +157,13 @@ where
         &serialized_descriptor_set
     ).context("failed to parse descriptor set")?;
 
-    let files_to_generate = inputs
-        .iter()
-        .map(
-            |input| match input.as_ref().file_name().map(OsString::from) {
-                Some(i) => Ok(i.into_string()
-                    .map_err(|e| format_err!("failed to convert {:?} to string", e))?),
-                None => Err(format_err!(
-                    "failed to find file name for {:?}",
-                    input.as_ref()
-                ))
-            }
-        )
-        .collect::<CompileResult<Vec<String>>>()?;
-
     write_out_generated_files(
-        grpcio_compiler::codegen::gen(descriptor_set.get_file(), files_to_generate.as_slice()),
+        grpcio_compiler::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
         &output
     ).context("failed to write generated grpc definitions")?;
 
     write_out_generated_files(
-        protobuf::codegen::gen(descriptor_set.get_file(), files_to_generate.as_slice()),
+        protobuf::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
         &output
     ).context("failed to write out generated protobuf definitions")?;
 
@@ -186,18 +174,31 @@ where
 mod tests {
     use super::*;
 
+    fn assert_compile_grpc_protos<Input, Output>(input: Input, expected_outputs: Output)
+    where
+        Input: AsRef<Path>,
+        Output: IntoIterator + Copy,
+        Output::Item: AsRef<Path>
+    {
+        let rel_include_path = Path::new("test/assets/protos");
+        let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(rel_include_path);
+        for include_path in &[rel_include_path, abs_include_path.as_ref()] {
+            let temp_dir = Temp::new_dir().unwrap();
+            compile_grpc_protos(&[&input], &[include_path], &temp_dir).unwrap();
+
+            for output in expected_outputs {
+                assert!(temp_dir.as_ref().join(output).is_file());
+            }
+        }
+    }
+
     #[test]
     fn test_compile_grpc_protos() {
-        let temp_dir = Temp::new_dir().unwrap();
-        let proto_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/assets/protos");
+        assert_compile_grpc_protos("helloworld.proto", &["helloworld_grpc.rs", "helloworld.rs"])
+    }
 
-        compile_grpc_protos(
-            &[proto_dir.join("helloworld.proto")],
-            &[proto_dir],
-            &temp_dir
-        ).unwrap();
-
-        assert!(temp_dir.as_ref().join("helloworld_grpc.rs").is_file());
-        assert!(temp_dir.as_ref().join("helloworld.rs").is_file());
+    #[test]
+    fn test_compile_grpc_protos_subdir() {
+        assert_compile_grpc_protos("foo/bar/baz.proto", &["baz_grpc.rs", "baz.rs"])
     }
 }
