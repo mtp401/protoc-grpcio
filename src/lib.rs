@@ -99,8 +99,7 @@ where
 ///
 /// # Arguments
 ///
-/// * `inputs` - A list of protobuf definitions to compile. Should be paths relative to the
-///     `includes` directories.
+/// * `inputs` - A list of protobuf definitions to compile.
 /// * `includes` - A list of of include directories to pass to `protoc`. Note that the directory
 ///     each member of `inputs` is in must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
@@ -157,13 +156,29 @@ where
         &serialized_descriptor_set
     ).context("failed to parse descriptor set")?;
 
+    let files_to_generate = stringify_paths(
+        stringified_inputs
+            .iter()
+            .map(Path::new)
+            .map(|input| {
+                if input.is_absolute() {
+                    input
+                        .file_name()
+                        .map(Path::new)
+                        .unwrap_or_else(|| input)
+                } else {
+                    input
+                }
+            })
+    )?;
+
     write_out_generated_files(
-        grpcio_compiler::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
+        grpcio_compiler::codegen::gen(descriptor_set.get_file(), files_to_generate.as_slice()),
         &output
     ).context("failed to write generated grpc definitions")?;
 
     write_out_generated_files(
-        protobuf::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
+        protobuf::codegen::gen(descriptor_set.get_file(), files_to_generate.as_slice()),
         &output
     ).context("failed to write out generated protobuf definitions")?;
 
@@ -174,13 +189,16 @@ where
 mod tests {
     use super::*;
 
+    const PROTO_ASSETS_DIR: &'static str = "test/assets/protos";
+    const EXPECTED_HELLO_WORLD_OUTPUTS: &[&'static str] = &["helloworld_grpc.rs", "helloworld.rs"];
+
     fn assert_compile_grpc_protos<Input, Output>(input: Input, expected_outputs: Output)
     where
         Input: AsRef<Path>,
         Output: IntoIterator + Copy,
         Output::Item: AsRef<Path>
     {
-        let rel_include_path = Path::new("test/assets/protos");
+        let rel_include_path = Path::new(PROTO_ASSETS_DIR);
         let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(rel_include_path);
         for include_path in &[rel_include_path, abs_include_path.as_ref()] {
             let temp_dir = Temp::new_dir().unwrap();
@@ -194,11 +212,27 @@ mod tests {
 
     #[test]
     fn test_compile_grpc_protos() {
-        assert_compile_grpc_protos("helloworld.proto", &["helloworld_grpc.rs", "helloworld.rs"])
+        assert_compile_grpc_protos("helloworld.proto", EXPECTED_HELLO_WORLD_OUTPUTS);
     }
 
     #[test]
     fn test_compile_grpc_protos_subdir() {
         assert_compile_grpc_protos("foo/bar/baz.proto", &["baz_grpc.rs", "baz.rs"])
+    }
+
+    #[test]
+    fn test_compile_grpc_protos_absolute_path() {
+        let temp_dir = Temp::new_dir().unwrap();
+        let proto_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(PROTO_ASSETS_DIR);
+
+        compile_grpc_protos(
+            &[proto_dir.join("helloworld.proto")],
+            &[proto_dir],
+            &temp_dir
+        ).unwrap();
+
+        for output in EXPECTED_HELLO_WORLD_OUTPUTS {
+            assert!(temp_dir.as_ref().join(output).is_file());
+        }
     }
 }
