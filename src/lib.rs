@@ -45,7 +45,6 @@ use std::convert::AsRef;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::Iterator;
-use std::option::Option::{None, Some};
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
@@ -193,7 +192,7 @@ where
 ///    relative to the CWD or relative to one of the `includes` paths. Note that the directory each
 ///    member of `inputs` is found under must be included in the `includes` parameter.
 /// * `includes` - A list of of include directory paths to pass to `protoc`. Include paths can be
-///    specified either as absolute or realtive to the CWD. Note that the directory each member of
+///    specified either as absolute or relative to the CWD. Note that the directory each member of
 ///    `inputs` is found under must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
 pub fn compile_grpc_protos<Inputs, Includes, Output>(
