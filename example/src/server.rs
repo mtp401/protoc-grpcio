@@ -6,8 +6,8 @@ use std::io::Read;
 use std::sync::Arc;
 use std::{io, thread};
 
-use futures::Future;
 use futures::sync::oneshot;
+use futures::Future;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
 
 use protos::diner::{Check, Item, Order};

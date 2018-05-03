@@ -45,7 +45,7 @@ use std::convert::AsRef;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::iter::Iterator;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
 use failure::ResultExt;
@@ -95,14 +95,105 @@ where
     Ok(())
 }
 
+fn absolutize<P>(path: P) -> CompileResult<PathBuf>
+where
+    P: AsRef<Path>
+{
+    let p = path.as_ref();
+    if p.is_relative() {
+        match std::env::current_dir() {
+            Ok(cwd) => Ok(cwd.join(p)),
+            Err(err) => Err(format_err!(
+                "Failed to determine CWD needed to absolutize a relative path: {:?}",
+                err
+            ))
+        }
+    } else {
+        Ok(PathBuf::from(p))
+    }
+}
+
+fn normalize<Paths, Bases>(
+    paths: Paths,
+    bases: Bases
+) -> CompileResult<(Vec<PathBuf>, Vec<PathBuf>)>
+where
+    Paths: IntoIterator,
+    Paths::Item: AsRef<Path>,
+    Bases: IntoIterator,
+    Bases::Item: AsRef<Path>
+{
+    let absolutized_bases = bases
+        .into_iter()
+        .map(absolutize)
+        .collect::<CompileResult<Vec<PathBuf>>>()?;
+
+    // We deal with the following cases:
+    // a.) absolute paths
+    // b.) paths relative to CWD
+    // c.) paths relative to bases
+    //
+    // We take the strategy of transforming the relative path cases (b & c) into absolute paths (a)
+    // and use the strip_prefix API from there.
+
+    let absolutized_paths = paths
+        .into_iter()
+        .map(|p| {
+            let rel_path = p.as_ref().to_path_buf();
+            let absolute_path = absolutize(&rel_path)?;
+            Ok((rel_path, absolute_path))
+        })
+        // TODO(John Sirois): Use `.flatten()` pending https://github.com/rust-lang/rust/issues/48213
+        .flat_map(|r: CompileResult<(PathBuf, PathBuf)>| r)
+        .map(|(rel_path, abs_path)| {
+            if abs_path.exists() {
+                // Case a or b.
+                Ok(abs_path)
+            } else {
+                // Case c.
+                for b in &absolutized_bases {
+                    let absolutized_path = b.join(&rel_path);
+                    if absolutized_path.exists() {
+                        return Ok(absolutized_path);
+                    }
+                }
+                Err(format_err!(
+                    "Failed to find the absolute path of input {:?}",
+                    rel_path
+                ))
+            }
+        })
+        .collect::<CompileResult<Vec<PathBuf>>>()?;
+
+    let relativized_paths: Vec<PathBuf> = absolutized_paths
+        .iter()
+        .map(|p| {
+            for b in &absolutized_bases {
+                if let Ok(rel_path) = p.strip_prefix(&b) {
+                    return Ok(PathBuf::from(rel_path));
+                }
+            }
+            Err(format_err!(
+                "The input path {:?} is not contained by any of the include paths {:?}",
+                p,
+                absolutized_bases
+            ))
+        })
+        .collect::<CompileResult<Vec<PathBuf>>>()?;
+
+    Ok((absolutized_bases, relativized_paths))
+}
+
 /// Compiles a list a gRPC definitions to rust modules.
 ///
 /// # Arguments
 ///
-/// * `inputs` - A list of protobuf definitions to compile. Should be paths relative to the
-///     `includes` directories.
-/// * `includes` - A list of of include directories to pass to `protoc`. Note that the directory
-///     each member of `inputs` is in must be included in this parameter.
+/// * `inputs` - A list of protobuf definition paths to compile. Paths can be specified as absolute,
+///    relative to the CWD or relative to one of the `includes` paths. Note that the directory each
+///    member of `inputs` is found under must be included in the `includes` parameter.
+/// * `includes` - A list of of include directory paths to pass to `protoc`. Include paths can be
+///    specified either as absolute or relative to the CWD. Note that the directory each member of
+///    `inputs` is found under must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
 pub fn compile_grpc_protos<Inputs, Includes, Output>(
     inputs: Inputs,
@@ -122,8 +213,9 @@ where
         .check()
         .context("failed to find `protoc`, `protoc` must be availabe in `PATH`")?;
 
-    let stringified_inputs = stringify_paths(inputs)?;
-    let stringified_includes = stringify_paths(includes)?;
+    let (absolutized_includes, relativized_inputs) = normalize(inputs, includes)?;
+    let stringified_inputs = stringify_paths(relativized_inputs)?;
+    let stringified_includes = stringify_paths(absolutized_includes)?;
 
     let descriptor_set = Temp::new_file()?;
 
@@ -173,6 +265,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     fn assert_compile_grpc_protos<Input, Output>(input: Input, expected_outputs: Output)
     where
@@ -180,14 +273,16 @@ mod tests {
         Output: IntoIterator + Copy,
         Output::Item: AsRef<Path>
     {
-        let rel_include_path = Path::new("test/assets/protos");
-        let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(rel_include_path);
-        for include_path in &[rel_include_path, abs_include_path.as_ref()] {
-            let temp_dir = Temp::new_dir().unwrap();
-            compile_grpc_protos(&[&input], &[include_path], &temp_dir).unwrap();
+        let rel_include_path = PathBuf::from("test/assets/protos");
+        let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(&rel_include_path);
+        for include_path in &[&rel_include_path, &abs_include_path] {
+            for inputs in &[vec![input.as_ref()], vec![&include_path.join(&input)]] {
+                let temp_dir = Temp::new_dir().unwrap();
+                compile_grpc_protos(inputs, &[include_path], &temp_dir).unwrap();
 
-            for output in expected_outputs {
-                assert!(temp_dir.as_ref().join(output).is_file());
+                for output in expected_outputs {
+                    assert!(temp_dir.as_ref().join(output).is_file());
+                }
             }
         }
     }
