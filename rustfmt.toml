@@ -18,5 +18,3 @@ format_strings = false # rustfmt string handling is horribly busted
 
 # imports
 reorder_imports = true
-reorder_imports_in_group = true
-reorder_imported_names = true
