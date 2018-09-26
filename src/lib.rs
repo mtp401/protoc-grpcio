@@ -118,7 +118,7 @@ where
 fn normalize<Paths, Bases>(
     paths: Paths,
     bases: Bases
-) -> CompileResult<(Vec<PathBuf>, Vec<PathBuf>)>
+) -> CompileResult<(Vec<PathBuf>, Vec<PathBuf>, Vec<PathBuf>)>
 where
     Paths: IntoIterator,
     Paths::Item: AsRef<Path>,
@@ -183,7 +183,7 @@ where
         })
         .collect::<CompileResult<Vec<PathBuf>>>()?;
 
-    Ok((absolutized_bases, relativized_paths))
+    Ok((absolutized_bases, absolutized_paths, relativized_paths))
 }
 
 /// Compiles a list a gRPC definitions to rust modules.
@@ -215,7 +215,8 @@ where
         .check()
         .context("failed to find `protoc`, `protoc` must be availabe in `PATH`")?;
 
-    let (absolutized_includes, relativized_inputs) = normalize(inputs, includes)?;
+    let (absolutized_includes, absolutized_paths, relativized_inputs) = normalize(inputs, includes)?;
+    let stringified_inputs_absolute = stringify_paths(absolutized_paths)?;
     let stringified_inputs = stringify_paths(relativized_inputs)?;
     let stringified_includes = stringify_paths(absolutized_includes)?;
 
@@ -227,7 +228,7 @@ where
                 Some(s) => s,
                 None => bail!("failed to convert descriptor set path to string")
             },
-            input: stringified_inputs
+            input: stringified_inputs_absolute
                 .iter()
                 .map(String::as_str)
                 .collect::<Vec<&str>>()
