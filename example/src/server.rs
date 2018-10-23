@@ -17,17 +17,18 @@ use protos::diner_grpc::{self, Diner};
 struct DinerService;
 
 impl Diner for DinerService {
-    fn eat(&self, ctx: RpcContext, order: Order, sink: UnarySink<Check>) {
+    fn eat(&mut self, ctx: RpcContext, order: Order, sink: UnarySink<Check>) {
         println!("Received Order {{ {:?} }}", order);
         let mut check = Check::new();
         check.set_total(order.get_items().iter().fold(0.0, |total, &item| {
             total + match item {
                 Item::SPAM => 0.05,
                 Item::EGGS => 0.25,
-                Item::HAM => 1.0
+                Item::HAM => 1.0,
             }
         }));
-        let f = sink.success(check.clone())
+        let f = sink
+            .success(check.clone())
             .map(move |_| println!("Responded with Check {{ {:?} }}", check))
             .map_err(move |err| eprintln!("Failed to reply: {:?}", err));
         ctx.spawn(f)
