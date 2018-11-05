@@ -36,7 +36,7 @@ extern crate grpcio_compiler;
 #[macro_use]
 extern crate failure;
 
-extern crate mktemp;
+extern crate tempfile;
 
 extern crate protobuf;
 extern crate protobuf_codegen;
@@ -51,7 +51,7 @@ use std::vec::Vec;
 
 use failure::ResultExt;
 
-use mktemp::Temp;
+use tempfile::NamedTempFile;
 
 use protobuf::{compiler_plugin, descriptor};
 use protobuf_codegen::Customize;
@@ -220,7 +220,7 @@ where
     let stringified_inputs = stringify_paths(relativized_inputs)?;
     let stringified_includes = stringify_paths(absolutized_includes)?;
 
-    let descriptor_set = Temp::new_file()?;
+    let descriptor_set = NamedTempFile::new()?;
 
     protoc
         .write_descriptor_set(DescriptorSetOutArgs {
@@ -274,6 +274,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
     use std::path::PathBuf;
 
     fn assert_compile_grpc_protos<Input, Output>(input: Input, expected_outputs: Output)
@@ -286,7 +287,7 @@ mod tests {
         let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(&rel_include_path);
         for include_path in &[&rel_include_path, &abs_include_path] {
             for inputs in &[vec![input.as_ref()], vec![&include_path.join(&input)]] {
-                let temp_dir = Temp::new_dir().unwrap();
+                let temp_dir = tempdir().unwrap();
                 compile_grpc_protos(inputs, &[include_path], &temp_dir).unwrap();
 
                 for output in expected_outputs {

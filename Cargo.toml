@@ -13,7 +13,7 @@ API for programatically invoking the grpcio (grpc-rs) gRPC compiler
 [dependencies]
 grpcio-compiler = "0.4"
 failure = "0.1"
-mktemp = "0.3"
+tempfile = "3.0"
 protobuf = "2.0"
 protobuf-codegen = "2.0"
 protoc = "2.0"
