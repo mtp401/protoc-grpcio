@@ -71,7 +71,7 @@ grpcio = "0.2.0"
 protobuf = "1.4.1"
 
 [build-dependencies]
-protoc-grpcio = "0.1.1"
+protoc-grpcio = "0.3.1"
 ```
 
 You can inspect this example under [`example/`](example) by compiling and running the example
