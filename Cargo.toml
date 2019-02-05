@@ -1,6 +1,6 @@
 [package]
 name = "protoc-grpcio"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Matt Pelland <matt@pelland.io>"]
 license = "Apache-2.0"
 keywords = ["compiler", "grpc", "protobuf", "grpc-rs"]
@@ -11,9 +11,9 @@ API for programatically invoking the grpcio (grpc-rs) gRPC compiler
 """
 
 [dependencies]
-grpcio-compiler = "0.4"
+grpcio-compiler = "^0.4.3"
 failure = "0.1"
 tempfile = "3.0"
-protobuf = "2.0"
-protobuf-codegen = "2.0"
+protobuf = "2.1"
+protobuf-codegen = "2.1"
 protoc = "2.0"

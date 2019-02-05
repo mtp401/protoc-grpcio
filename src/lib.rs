@@ -197,10 +197,13 @@ where
 ///    specified either as absolute or relative to the CWD. Note that the directory each member of
 ///    `inputs` is found under must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
+/// * `customizations` - An Option<protobuf_codegen::Customize> allowing customization options to be
+///    passed to protobuf_codegen
 pub fn compile_grpc_protos<Inputs, Includes, Output>(
     inputs: Inputs,
     includes: Includes,
-    output: Output
+    output: Output,
+    customizations: Option<Customize>,
 ) -> CompileResult<()>
 where
     Inputs: IntoIterator,
@@ -252,7 +255,7 @@ where
         &serialized_descriptor_set
     ).context("failed to parse descriptor set")?;
 
-    let customizations = Customize::default();
+    let customize = customizations.unwrap_or_default();
 
     write_out_generated_files(
         grpcio_compiler::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
@@ -263,7 +266,7 @@ where
         protobuf_codegen::gen(
             descriptor_set.get_file(),
             stringified_inputs.as_slice(),
-            &customizations
+            &customize
         ),
         &output
     ).context("failed to write out generated protobuf definitions")?;
@@ -288,7 +291,7 @@ mod tests {
         for include_path in &[&rel_include_path, &abs_include_path] {
             for inputs in &[vec![input.as_ref()], vec![&include_path.join(&input)]] {
                 let temp_dir = tempdir().unwrap();
-                compile_grpc_protos(inputs, &[include_path], &temp_dir).unwrap();
+                compile_grpc_protos(inputs, &[include_path], &temp_dir, None).unwrap();
 
                 for output in expected_outputs {
                     assert!(temp_dir.as_ref().join(output).is_file());
