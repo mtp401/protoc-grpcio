@@ -40,7 +40,8 @@ fn main() {
     protoc_grpcio::compile_grpc_protos(
         &["example/diner.proto"],
         &[proto_root],
-        &proto_root
+        &proto_root,
+        None
     ).expect("Failed to compile gRPC definitions!");
 }
 ```
