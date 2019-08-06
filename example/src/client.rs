@@ -16,7 +16,7 @@ fn main() {
     }
     let port = args[1]
         .parse::<u16>()
-        .expect(format!("{} is not a valid port number", args[1]).as_str());
+        .unwrap_or_else(|_| panic!("{} is not a valid port number", args[1]));
 
     let env = Arc::new(EnvBuilder::new().build());
     let ch = ChannelBuilder::new(env).connect(format!("localhost:{}", port).as_str());
