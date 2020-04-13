@@ -15,9 +15,9 @@ maintenance = { status = "actively-developed" }
 travis-ci = { repository = "mtp401/protoc-grpcio" }
 
 [dependencies]
-grpcio-compiler = "0.5.0-alpha.2"
+grpcio-compiler = "0.5"
 failure = "0.1"
 tempfile = "3.1"
-protobuf = "2.8"
-protobuf-codegen = "2.8"
-protoc = "2.8"
+protobuf = "2.13"
+protobuf-codegen = "2.13"
+protoc = "2.13"
