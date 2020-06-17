@@ -1,6 +1,6 @@
 [package]
 name = "protoc-grpcio"
-version = "1.2.0"
+version = "1.3.0"
 authors = ["Matt Pelland <matt@pelland.io>"]
 license = "Apache-2.0"
 keywords = ["compiler", "grpc", "protobuf", "grpc-rs"]
