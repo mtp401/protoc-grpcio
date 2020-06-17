@@ -65,7 +65,7 @@ pub type CompileResult<T> = Result<T, CompileError>;
 fn stringify_paths<Paths>(paths: Paths) -> CompileResult<Vec<String>>
 where
     Paths: IntoIterator,
-    Paths::Item: AsRef<Path>
+    Paths::Item: AsRef<Path>,
 {
     paths
         .into_iter()
@@ -74,17 +74,17 @@ where
             None => Err(format_err!(
                 "failed to convert {:?} to string",
                 input.as_ref()
-            ))
+            )),
         })
         .collect()
 }
 
 fn write_out_generated_files<P>(
     generation_results: Vec<compiler_plugin::GenResult>,
-    output_dir: P
+    output_dir: P,
 ) -> CompileResult<()>
 where
-    P: AsRef<Path>
+    P: AsRef<Path>,
 {
     for result in generation_results {
         let file = output_dir.as_ref().join(result.name);
@@ -99,7 +99,7 @@ where
 
 fn absolutize<P>(path: P) -> CompileResult<PathBuf>
 where
-    P: AsRef<Path>
+    P: AsRef<Path>,
 {
     let p = path.as_ref();
     if p.is_relative() {
@@ -108,7 +108,7 @@ where
             Err(err) => Err(format_err!(
                 "Failed to determine CWD needed to absolutize a relative path: {:?}",
                 err
-            ))
+            )),
         }
     } else {
         Ok(PathBuf::from(p))
@@ -117,13 +117,13 @@ where
 
 fn normalize<Paths, Bases>(
     paths: Paths,
-    bases: Bases
+    bases: Bases,
 ) -> CompileResult<(Vec<PathBuf>, Vec<PathBuf>, Vec<PathBuf>)>
 where
     Paths: IntoIterator,
     Paths::Item: AsRef<Path>,
     Bases: IntoIterator,
-    Bases::Item: AsRef<Path>
+    Bases::Item: AsRef<Path>,
 {
     let absolutized_bases = bases
         .into_iter()
@@ -210,7 +210,7 @@ where
     Inputs::Item: AsRef<Path>,
     Includes: IntoIterator,
     Includes::Item: AsRef<Path>,
-    Output: AsRef<Path>
+    Output: AsRef<Path>,
 {
     let protoc = Protoc::from_env_path();
 
@@ -218,7 +218,8 @@ where
         .check()
         .context("failed to find `protoc`, `protoc` must be availabe in `PATH`")?;
 
-    let (absolutized_includes, absolutized_paths, relativized_inputs) = normalize(inputs, includes)?;
+    let (absolutized_includes, absolutized_paths, relativized_inputs) =
+        normalize(inputs, includes)?;
     let stringified_inputs_absolute = stringify_paths(absolutized_paths)?;
     let stringified_inputs = stringify_paths(relativized_inputs)?;
     let stringified_includes = stringify_paths(absolutized_includes)?;
@@ -229,7 +230,7 @@ where
         .write_descriptor_set(DescriptorSetOutArgs {
             out: match descriptor_set.as_ref().to_str() {
                 Some(s) => s,
-                None => bail!("failed to convert descriptor set path to string")
+                None => bail!("failed to convert descriptor set path to string"),
             },
             input: stringified_inputs_absolute
                 .iter()
@@ -241,7 +242,7 @@ where
                 .map(String::as_str)
                 .collect::<Vec<&str>>()
                 .as_slice(),
-            include_imports: true
+            include_imports: true,
         })
         .context("failed to write descriptor set")?;
 
@@ -251,25 +252,27 @@ where
         .read_to_end(&mut serialized_descriptor_set)
         .context("failed to read descriptor set")?;
 
-    let descriptor_set = protobuf::parse_from_bytes::<descriptor::FileDescriptorSet>(
-        &serialized_descriptor_set
-    ).context("failed to parse descriptor set")?;
+    let descriptor_set =
+        protobuf::parse_from_bytes::<descriptor::FileDescriptorSet>(&serialized_descriptor_set)
+            .context("failed to parse descriptor set")?;
 
     let customize = customizations.unwrap_or_default();
 
     write_out_generated_files(
         grpcio_compiler::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
-        &output
-    ).context("failed to write generated grpc definitions")?;
+        &output,
+    )
+    .context("failed to write generated grpc definitions")?;
 
     write_out_generated_files(
         protobuf_codegen::gen(
             descriptor_set.get_file(),
             stringified_inputs.as_slice(),
-            &customize
+            &customize,
         ),
-        &output
-    ).context("failed to write out generated protobuf definitions")?;
+        &output,
+    )
+    .context("failed to write out generated protobuf definitions")?;
 
     Ok(())
 }
@@ -277,14 +280,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::path::PathBuf;
+    use tempfile::tempdir;
 
     fn assert_compile_grpc_protos<Input, Output>(input: Input, expected_outputs: Output)
     where
         Input: AsRef<Path>,
         Output: IntoIterator + Copy,
-        Output::Item: AsRef<Path>
+        Output::Item: AsRef<Path>,
     {
         let rel_include_path = PathBuf::from("test/assets/protos");
         let abs_include_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(&rel_include_path);

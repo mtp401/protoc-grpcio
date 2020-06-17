@@ -6,12 +6,13 @@ use std::io::Read;
 use std::sync::Arc;
 use std::{io, thread};
 
-use futures::sync::oneshot;
-use futures::Future;
+use futures::prelude::*;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
 
 use protos::diner::{Check, Item, Order};
 use protos::diner_grpc::{self, Diner};
+use futures::channel::oneshot;
+use futures::executor::block_on;
 
 #[derive(Clone)]
 struct DinerService;
@@ -29,8 +30,8 @@ impl Diner for DinerService {
         }));
         let f = sink
             .success(check.clone())
-            .map(move |_| println!("Responded with Check {{ {:?} }}", check))
-            .map_err(move |err| eprintln!("Failed to reply: {:?}", err));
+            .map_err(move |err| eprintln!("Failed to reply: {:?}", err))
+            .map(move |_| println!("Responded with Check {{ {:?} }}", check));
         ctx.spawn(f)
     }
 }
@@ -44,7 +45,7 @@ fn main() {
         .build()
         .unwrap();
     server.start();
-    for &(ref host, port) in server.bind_addrs() {
+    for (ref host, port) in server.bind_addrs() {
         println!("listening on {}:{}", host, port);
     }
     let (tx, rx) = oneshot::channel();
@@ -53,6 +54,6 @@ fn main() {
         let _ = io::stdin().read(&mut [0]).unwrap();
         tx.send(())
     });
-    let _ = rx.wait();
-    let _ = server.shutdown().wait();
+    let _ = block_on(rx);
+    let _ = block_on(server.shutdown());
 }
