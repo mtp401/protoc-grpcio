@@ -1,6 +1,6 @@
 [package]
 name = "protoc-grpcio"
-version = "2.0.0"
+version = "3.0.0"
 authors = ["Matt Pelland <matt@pelland.io>"]
 license = "Apache-2.0"
 keywords = ["compiler", "grpc", "protobuf", "grpc-rs"]
@@ -15,9 +15,9 @@ maintenance = { status = "actively-developed" }
 travis-ci = { repository = "mtp401/protoc-grpcio" }
 
 [dependencies]
-grpcio-compiler = "0.6"
+grpcio-compiler = "0.7"
 failure = "0.1"
 tempfile = "3.1"
-protobuf = "2.13"
-protobuf-codegen = "2.13"
-protoc = "2.13"
+protobuf = "2.18"
+protobuf-codegen = "2.18"
+protoc = "2.18"
