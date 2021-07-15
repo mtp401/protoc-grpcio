@@ -31,31 +31,20 @@
 //! An API for programmatically invoking the grpcio gRPC compiler in the same vein as the
 //! [rust-protoc-grpc](https://crates.io/crates/protoc-rust-grpc) crate from Stepan Koltsov.
 
-extern crate grpcio_compiler;
+use std::{
+    convert::AsRef,
+    fs::File,
+    io::{Read as _, Write as _},
+    iter::Iterator as _,
+    path::{Path, PathBuf},
+    vec::Vec
+};
 
-#[macro_use]
-extern crate failure;
-
-extern crate tempfile;
-
-extern crate protobuf;
-extern crate protobuf_codegen;
-extern crate protoc;
-
-use std::convert::AsRef;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::iter::Iterator;
-use std::path::{Path, PathBuf};
-use std::vec::Vec;
-
-use failure::ResultExt;
-
-use tempfile::NamedTempFile;
-
+use failure::{bail, format_err, ResultExt as _};
 use protobuf::{compiler_plugin, descriptor, Message as _};
 use protobuf_codegen::Customize;
 use protoc::{DescriptorSetOutArgs, Protoc};
+use tempfile::NamedTempFile;
 
 /// Custom error type used throughout this crate.
 pub type CompileError = ::failure::Error;
@@ -137,16 +126,13 @@ where
     //
     // We take the strategy of transforming the relative path cases (b & c) into absolute paths (a)
     // and use the strip_prefix API from there.
-
     let absolutized_paths = paths
         .into_iter()
         .map(|p| {
             let rel_path = p.as_ref().to_path_buf();
-            let absolute_path = absolutize(&rel_path)?;
-            Ok((rel_path, absolute_path))
+            absolutize(&rel_path).map(|p| (rel_path, p))
         })
-        // TODO(John Sirois): Use `.flatten()` pending https://github.com/rust-lang/rust/issues/48213
-        .flat_map(|r: CompileResult<(PathBuf, PathBuf)>| r)
+        .flatten()
         .map(|(rel_path, abs_path)| {
             if abs_path.exists() {
                 // Case a or b.

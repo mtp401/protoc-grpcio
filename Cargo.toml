@@ -9,6 +9,7 @@ documentation = "https://docs.rs/protoc-grpcio"
 description = """
 API for programatically invoking the grpcio (grpc-rs) gRPC compiler
 """
+edition = "2018"
 
 [badges]
 maintenance = { status = "actively-developed" }
