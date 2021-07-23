@@ -18,4 +18,8 @@
 mod compile;
 mod error;
 
+/// Re-export of the codegen crate used internally. This can be used by downstream consumers to
+/// provide customized options to `compile_grpc_protos` via the `Customize` struct.
+pub use protobuf_codegen;
+
 pub use crate::{compile::compile_grpc_protos, error::{CompileError, CompileResult}};

@@ -171,8 +171,9 @@ where
 ///    specified either as absolute or relative to the CWD. Note that the directory each member of
 ///    `inputs` is found under must be included in this parameter.
 /// * `output` - Directory to place the generated rust modules into.
-/// * `customizations` - An Option<protobuf_codegen::Customize> allowing customization options to be
-///    passed to protobuf_codegen
+/// * `customizations` - An `Option<protobuf_codegen::Customize>` allowing customization options to be
+///    passed to `protobuf_codegen`. Note that the version of `protobuf_codegen` used by this crate
+///    is re-exported in the root module (`use protoc_grpcio::protobuf_codegen::Customize`).
 pub fn compile_grpc_protos<Inputs, Includes, Output>(
     inputs: Inputs,
     includes: Includes,
