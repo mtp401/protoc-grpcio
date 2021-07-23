@@ -40,16 +40,13 @@ use std::{
     vec::Vec
 };
 
-use failure::{bail, format_err, ResultExt as _};
 use protobuf::{compiler_plugin, descriptor, Message as _};
 use protobuf_codegen::Customize;
 use protoc::{DescriptorSetOutArgs, Protoc};
 use tempfile::NamedTempFile;
 
-/// Custom error type used throughout this crate.
-pub type CompileError = ::failure::Error;
-/// Custom result type used throughout this crate.
-pub type CompileResult<T> = Result<T, CompileError>;
+mod error;
+pub use crate::error::{CompileError, CompileResult};
 
 fn stringify_paths<Paths>(paths: Paths) -> CompileResult<Vec<String>>
 where
@@ -58,12 +55,17 @@ where
 {
     paths
         .into_iter()
-        .map(|input| match input.as_ref().to_str() {
-            Some(s) => Ok(s.to_owned()),
-            None => Err(format_err!(
-                "failed to convert {:?} to string",
-                input.as_ref()
-            )),
+        .map(|input| {
+            input
+                .as_ref()
+                .to_str()
+                .ok_or_else(|| {
+                    CompileError::PathConversionError(format!(
+                        "failed to convert {} to string",
+                        input.as_ref().display()
+                    ))
+                })
+                .map(Into::into)
         })
         .collect()
 }
@@ -77,10 +79,7 @@ where
 {
     for result in generation_results {
         let file = output_dir.as_ref().join(result.name);
-        File::create(&file)
-            .context(format!("failed to create {:?}", &file))?
-            .write_all(&result.content)
-            .context(format!("failed to write {:?}", &file))?;
+        File::create(file)?.write_all(&result.content)?;
     }
 
     Ok(())
@@ -90,18 +89,13 @@ fn absolutize<P>(path: P) -> CompileResult<PathBuf>
 where
     P: AsRef<Path>,
 {
-    let p = path.as_ref();
-    if p.is_relative() {
-        match std::env::current_dir() {
-            Ok(cwd) => Ok(cwd.join(p)),
-            Err(err) => Err(format_err!(
-                "Failed to determine CWD needed to absolutize a relative path: {:?}",
-                err
-            )),
-        }
+    let p = path.as_ref().to_path_buf();
+
+    Ok(if p.is_relative() {
+        std::env::current_dir()?.join(p)
     } else {
-        Ok(PathBuf::from(p))
-    }
+        p
+    })
 }
 
 fn normalize<Paths, Bases>(
@@ -130,7 +124,7 @@ where
         .into_iter()
         .map(|p| {
             let rel_path = p.as_ref().to_path_buf();
-            absolutize(&rel_path).map(|p| (rel_path, p))
+            absolutize(&rel_path).map(|abs_path| (rel_path, abs_path))
         })
         .flatten()
         .map(|(rel_path, abs_path)| {
@@ -145,10 +139,10 @@ where
                         return Ok(absolutized_path);
                     }
                 }
-                Err(format_err!(
-                    "Failed to find the absolute path of input {:?}",
-                    rel_path
-                ))
+                Err(CompileError::PathConversionError(format!(
+                    "Failed to find the absolute path of input {}",
+                    rel_path.display()
+                )))
             }
         })
         .collect::<CompileResult<Vec<PathBuf>>>()?;
@@ -158,14 +152,14 @@ where
         .map(|p| {
             for b in &absolutized_bases {
                 if let Ok(rel_path) = p.strip_prefix(&b) {
-                    return Ok(PathBuf::from(rel_path));
+                    return Ok(rel_path.to_path_buf())
                 }
             }
-            Err(format_err!(
-                "The input path {:?} is not contained by any of the include paths {:?}",
-                p,
+            Err(CompileError::PathConversionError(format!(
+                "The input path {} is not contained by any of the include paths {:?}",
+                p.display(),
                 absolutized_bases
-            ))
+            )))
         })
         .collect::<CompileResult<Vec<PathBuf>>>()?;
 
@@ -200,9 +194,7 @@ where
 {
     let protoc = Protoc::from_env_path();
 
-    protoc
-        .check()
-        .context("failed to find `protoc`, `protoc` must be availabe in `PATH`")?;
+    protoc.check()?;
 
     let (absolutized_includes, absolutized_paths, relativized_inputs) =
         normalize(inputs, includes)?;
@@ -216,7 +208,9 @@ where
         .write_descriptor_set(DescriptorSetOutArgs {
             out: match descriptor_set.as_ref().to_str() {
                 Some(s) => s,
-                None => bail!("failed to convert descriptor set path to string"),
+                None => return Err(CompileError::GenericError(
+                    "failed to convert descriptor set path to string".to_owned()
+                ))
             },
             input: stringified_inputs_absolute
                 .iter()
@@ -229,26 +223,21 @@ where
                 .collect::<Vec<&str>>()
                 .as_slice(),
             include_imports: true,
-        })
-        .context("failed to write descriptor set")?;
+        })?;
 
     let mut serialized_descriptor_set = Vec::new();
-    File::open(&descriptor_set)
-        .context("failed to open descriptor set")?
-        .read_to_end(&mut serialized_descriptor_set)
-        .context("failed to read descriptor set")?;
+    File::open(&descriptor_set)?
+        .read_to_end(&mut serialized_descriptor_set)?;
 
     let descriptor_set =
-        descriptor::FileDescriptorSet::parse_from_bytes(&serialized_descriptor_set)
-            .context("failed to parse descriptor set")?;
+        descriptor::FileDescriptorSet::parse_from_bytes(&serialized_descriptor_set)?;
 
     let customize = customizations.unwrap_or_default();
 
     write_out_generated_files(
         grpcio_compiler::codegen::gen(descriptor_set.get_file(), stringified_inputs.as_slice()),
         &output,
-    )
-    .context("failed to write generated grpc definitions")?;
+    )?;
 
     write_out_generated_files(
         protobuf_codegen::gen(
@@ -257,8 +246,7 @@ where
             &customize,
         ),
         &output,
-    )
-    .context("failed to write out generated protobuf definitions")?;
+    )?;
 
     Ok(())
 }

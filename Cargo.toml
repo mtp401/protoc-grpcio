@@ -17,8 +17,8 @@ travis-ci = { repository = "mtp401/protoc-grpcio" }
 
 [dependencies]
 grpcio-compiler = "0.9"
-failure = "0.1"
 tempfile = "3.2"
+thiserror = "1.0"
 protobuf = "2.24"
 protobuf-codegen = "2.24"
 protoc = "2.24"
