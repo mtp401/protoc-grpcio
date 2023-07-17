@@ -34,7 +34,7 @@
 extern crate grpcio_compiler;
 
 #[macro_use]
-extern crate failure;
+extern crate anyhow;
 
 extern crate tempfile;
 
@@ -49,16 +49,16 @@ use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use tempfile::NamedTempFile;
 
-use protobuf::{compiler_plugin, descriptor};
+use protobuf::{compiler_plugin, descriptor, Message};
 use protobuf_codegen::Customize;
 use protoc::{DescriptorSetOutArgs, Protoc};
 
 /// Custom error type used throughout this crate.
-pub type CompileError = ::failure::Error;
+pub type CompileError = ::anyhow::Error;
 /// Custom result type used throughout this crate.
 pub type CompileResult<T> = Result<T, CompileError>;
 
@@ -253,7 +253,7 @@ where
         .context("failed to read descriptor set")?;
 
     let descriptor_set =
-        protobuf::parse_from_bytes::<descriptor::FileDescriptorSet>(&serialized_descriptor_set)
+        descriptor::FileDescriptorSet::parse_from_bytes(&serialized_descriptor_set)
             .context("failed to parse descriptor set")?;
 
     let customize = customizations.unwrap_or_default();
