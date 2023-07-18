@@ -42,12 +42,14 @@ extern crate protobuf;
 extern crate protobuf_codegen;
 extern crate protoc;
 
-use std::convert::AsRef;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::iter::Iterator;
-use std::path::{Path, PathBuf};
-use std::vec::Vec;
+use std::{
+    convert::AsRef,
+    fs::File,
+    io::{Read as _, Write as _},
+    iter::Iterator as _,
+    path::{Path, PathBuf},
+    vec::Vec,
+};
 
 use anyhow::Context;
 

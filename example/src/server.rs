@@ -2,17 +2,20 @@ extern crate futures;
 extern crate grpcio;
 extern crate protos;
 
-use std::io::Read;
-use std::sync::Arc;
-use std::{io, thread};
+use std::{
+    io::{self, Read as _},
+    sync::Arc,
+    thread,
+};
 
-use futures::prelude::*;
+use futures::{channel::oneshot, executor::block_on, prelude::*};
+
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
 
-use futures::channel::oneshot;
-use futures::executor::block_on;
-use protos::diner::{Check, Item, Order};
-use protos::diner_grpc::{self, Diner};
+use protos::{
+    diner::{Check, Item, Order},
+    diner_grpc::{self, Diner},
+};
 
 #[derive(Clone)]
 struct DinerService;

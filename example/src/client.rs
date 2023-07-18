@@ -1,13 +1,13 @@
 extern crate grpcio;
 extern crate protos;
 
-use std::env;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use grpcio::{ChannelBuilder, EnvBuilder};
-
-use protos::diner::{Item, Order};
-use protos::diner_grpc::DinerClient;
+use protos::{
+    diner::{Item, Order},
+    diner_grpc::DinerClient,
+};
 
 fn main() {
     let args = env::args().collect::<Vec<_>>();
