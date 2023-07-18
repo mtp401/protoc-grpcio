@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function install_protobuf {
-    local install_prefix="${INSTALL_PREFIX:-/home/travis}"
+    local install_prefix="${INSTALL_PREFIX:-${HOME}}"
     local protobuf_version="${PROTOBUF_VERSION:-3.5.1}"
     local protobuf_dir="protobuf-${protobuf_version}"
     local protobuf_archive_name="protobuf-cpp-${protobuf_version}.tar.gz"
