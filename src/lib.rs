@@ -1,4 +1,4 @@
-// Copyright 2018. Matthew Pelland <matt@pelland.io>.
+// Copyright 2018, 2023. Matthew Pelland <matt@pelland.io>.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -140,13 +140,11 @@ where
 
     let absolutized_paths = paths
         .into_iter()
-        .map(|p| {
+        .flat_map(|p| {
             let rel_path = p.as_ref().to_path_buf();
             let absolute_path = absolutize(&rel_path)?;
-            Ok((rel_path, absolute_path))
+            Ok::<_, CompileError>((rel_path, absolute_path))
         })
-        // TODO(John Sirois): Use `.flatten()` pending https://github.com/rust-lang/rust/issues/48213
-        .flat_map(|r: CompileResult<(PathBuf, PathBuf)>| r)
         .map(|(rel_path, abs_path)| {
             if abs_path.exists() {
                 // Case a or b.
@@ -171,7 +169,7 @@ where
         .iter()
         .map(|p| {
             for b in &absolutized_bases {
-                if let Ok(rel_path) = p.strip_prefix(&b) {
+                if let Ok(rel_path) = p.strip_prefix(b) {
                     return Ok(PathBuf::from(rel_path));
                 }
             }
