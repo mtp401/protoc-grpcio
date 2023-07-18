@@ -9,10 +9,10 @@ use std::{io, thread};
 use futures::prelude::*;
 use grpcio::{Environment, RpcContext, ServerBuilder, UnarySink};
 
-use protos::diner::{Check, Item, Order};
-use protos::diner_grpc::{self, Diner};
 use futures::channel::oneshot;
 use futures::executor::block_on;
+use protos::diner::{Check, Item, Order};
+use protos::diner_grpc::{self, Diner};
 
 #[derive(Clone)]
 struct DinerService;
@@ -22,11 +22,12 @@ impl Diner for DinerService {
         println!("Received Order {{ {:?} }}", order);
         let mut check = Check::new();
         check.set_total(order.get_items().iter().fold(0.0, |total, &item| {
-            total + match item {
-                Item::SPAM => 0.05,
-                Item::EGGS => 0.25,
-                Item::HAM => 1.0,
-            }
+            total
+                + match item {
+                    Item::SPAM => 0.05,
+                    Item::EGGS => 0.25,
+                    Item::HAM => 1.0,
+                }
         }));
         let f = sink
             .success(check.clone())
