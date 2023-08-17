@@ -6,28 +6,30 @@ executors:
         docker:
             - image: cimg/base:2023.07
 jobs:
-    checkout:
-        executor: circleci-base
-        steps:
-            - checkout
-    install-rust:
+    setup_environment:
         executor: circleci-base
         parameters:
             rust_version:
                 type: string
-        steps:
-            - rust/install:
-                version: << parameters.rust_version >>
-    install-protobuf:
-        executor: circleci-base
-        parameters:
             protobuf_version:
                 type: string
         steps:
+            - checkout
             - run:
                 environment:
+                    INSTALL_PREFIX: ~/.local
                     PROTOBUF_VERSION: << parameters.protobuf_version >>
                 command: ./install_dependencies.sh
+            - persist_to_workspace:
+                root: ~/
+                paths:
+                    - .local
+            - rust/install:
+                version: << parameters.rust_version >>
+            - persist_to_workspace:
+                root: ~/
+                paths:
+                    - .cargo
     format-lint:
         executor: circleci-base
         parameters:
@@ -44,6 +46,8 @@ jobs:
             working_directory:
                 type: string
         steps:
+            - attach_workspace:
+                at: ~/
             - rust/build:
                 working_directory: << parameters.working_directory >>
     test:
@@ -56,28 +60,15 @@ jobs:
                 working_directory: << parameters.working_directory >>
 
 workflows:
-    default:
+    build:
         jobs:
-            - checkout
-            - install-rust:
-                name: install-rust-<< matrix.rust_version >> 
-                matrix:
-                    parameters: &rust_versions
-                        rust_version: ["1.70", "stable", "nightly"]
-                requires:
-                    - checkout
-            - install-protobuf:
-                name: install-protobuf-<< matrix.protobuf_version >>
-                matrix:
-                    parameters: &protobuf_versions
-                        protobuf_version: ["3.0.0", "3.5.1", "3.6.1", "23.3"]
-                requires:
-                    - checkout
-            - build:
-                name: build-<< matrix.working_directory >>
+            - setup_environment:
+                name: setup_environment-protobuf_<< matrix.protobuf_version >>-rust_<< matrix.rust_version >>
                 matrix:
                     parameters:
-                        working_directory: [".", "example"]
+                        protobuf_version: ["3.0.0", "3.5.1", "3.6.1", "23.3"]
+                        rust_version: ["1.70.0", "stable", "nightly"]
+            - build:
+                working_directory: "."
                 requires:
-                    - install-rust
-                    - install-protobuf
+                    - setup_environment
