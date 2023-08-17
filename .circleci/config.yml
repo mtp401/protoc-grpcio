@@ -58,17 +58,21 @@ jobs:
 workflows:
     default:
         jobs:
+            - checkout
             - install-rust:
                 name: install-rust-<< matrix.rust_version >> 
                 matrix:
                     parameters: &rust_versions
                         rust_version: ["1.70", "stable", "nightly"]
+                requires:
+                    - checkout
             - install-protobuf:
                 name: install-protobuf-<< matrix.protobuf_version >>
                 matrix:
                     parameters: &protobuf_versions
                         protobuf_version: ["3.0.0", "3.5.1", "3.6.1", "23.3"]
-            - checkout
+                requires:
+                    - checkout
             - build:
                 name: build-<< matrix.working_directory >>
                 matrix:
