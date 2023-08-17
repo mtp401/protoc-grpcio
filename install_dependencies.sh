@@ -18,7 +18,7 @@ function install_protobuf {
         fi
         tar -C "${build_dir}" -zxvf "${build_dir}/${protobuf_archive_name}"
         pushd "${build_dir}/${protobuf_dir}"
-        ./configure --prefix="${install_prefix}"
+        ./configure --prefix="$(realpath "${install_prefix}")"
         make
         make install
         popd
