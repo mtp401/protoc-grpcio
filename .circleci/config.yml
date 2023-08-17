@@ -74,3 +74,6 @@ workflows:
                 matrix:
                     parameters:
                         working_directory: [".", "example"]
+                requires:
+                    - install-rust
+                    - install-protobuf
